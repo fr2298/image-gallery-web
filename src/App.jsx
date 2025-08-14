@@ -78,10 +78,15 @@ function App() {
     })
   }
 
-  const filteredImages = images.filter(image => 
-    image.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (image.filename && image.filename.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  const filteredImages = images.filter(image => {
+    const term = searchTerm.toLowerCase()
+    return (
+      image.id.toLowerCase().includes(term) ||
+      (image.filename && image.filename.toLowerCase().includes(term)) ||
+      (image.tags && Array.isArray(image.tags) && 
+        image.tags.some(tag => tag.toLowerCase().includes(term)))
+    )
+  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">

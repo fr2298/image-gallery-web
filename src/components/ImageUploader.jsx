@@ -58,11 +58,12 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
         if (imageInfo.id) {
           const resultData = {
             id: imageInfo.id,
-            filename: imageInfo.filename || imageInfo.originalName || file.name,
+            filename: imageInfo.originalName || file.name, // API는 originalName 반환
             size: imageInfo.size || file.size,
             originalSize: file.size,
             compressedSize: imageInfo.size,
-            uploadedAt: imageInfo.uploadedAt || new Date().toISOString()
+            uploadedAt: imageInfo.uploadedAt || new Date().toISOString(),
+            tags: imageInfo.tags || [] // 태그 정보도 저장
           }
           setUploadResult(resultData)
           onUploadSuccess(resultData)

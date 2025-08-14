@@ -173,6 +173,15 @@ function ImageGallery({ images, apiBaseUrl, view, onImageDelete }) {
                 {image.size && (
                   <p className="text-xs opacity-90 mt-1">{formatFileSize(image.size)}</p>
                 )}
+                {image.tags && image.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {image.tags.slice(0, 3).map((tag, index) => (
+                      <span key={index} className="text-xs bg-white/20 px-1.5 py-0.5 rounded">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               {/* 삭제 버튼 */}
               <button
