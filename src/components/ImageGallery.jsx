@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import ImageModal from './ImageModal'
 
-function ImageGallery({ images, apiBaseUrl, view }) {
+function ImageGallery({ images, apiBaseUrl, view, onImageDelete }) {
   const [selectedImage, setSelectedImage] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   if (images.length === 0) {
     return (
@@ -42,6 +44,29 @@ function ImageGallery({ images, apiBaseUrl, view }) {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const handleDelete = async (imageId) => {
+    setDeleting(true)
+    try {
+      const response = await fetch(`${apiBaseUrl}/image/${imageId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        onImageDelete(imageId)
+        setDeleteConfirm(null)
+        setSelectedImage(null)
+      } else {
+        const errorText = await response.text()
+        alert('삭제 실패: ' + errorText)
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      alert('삭제 중 오류가 발생했습니다')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (view === 'list') {
@@ -143,6 +168,19 @@ function ImageGallery({ images, apiBaseUrl, view }) {
                   <p className="text-xs opacity-90 mt-1">{formatFileSize(image.size)}</p>
                 )}
               </div>
+              {/* 삭제 버튼 */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDeleteConfirm(image)
+                }}
+                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                title="삭제"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
           </div>
         ))}
@@ -153,6 +191,45 @@ function ImageGallery({ images, apiBaseUrl, view }) {
           apiBaseUrl={apiBaseUrl}
           onClose={() => setSelectedImage(null)}
         />
+      )}
+      
+      {/* 삭제 확인 다이얼로그 */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              이미지 삭제 확인
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-2">
+              정말로 이 이미지를 삭제하시겠습니까?
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              ID: {deleteConfirm.id}
+              {deleteConfirm.filename && (
+                <>
+                  <br />
+                  파일명: {deleteConfirm.filename}
+                </>
+              )}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                disabled={deleting}
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm.id)}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                disabled={deleting}
+              >
+                {deleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

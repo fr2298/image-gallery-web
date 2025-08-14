@@ -65,6 +65,19 @@ function App() {
     }
   }
 
+  const handleImageDelete = (imageId) => {
+    // 이미지 목록에서 제거
+    setImages(prevImages => {
+      const updatedImages = prevImages.filter(img => img.id !== imageId)
+      
+      // localStorage 업데이트
+      const imageIds = updatedImages.map(img => img.id)
+      localStorage.setItem('uploadedImages', JSON.stringify(imageIds))
+      
+      return updatedImages
+    })
+  }
+
   const filteredImages = images.filter(image => 
     image.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (image.filename && image.filename.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -147,6 +160,7 @@ function App() {
               images={filteredImages} 
               apiBaseUrl={API_BASE_URL}
               view={view}
+              onImageDelete={handleImageDelete}
             />
           )}
         </div>
