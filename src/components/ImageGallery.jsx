@@ -49,8 +49,14 @@ function ImageGallery({ images, apiBaseUrl, view, onImageDelete }) {
   const handleDelete = async (imageId) => {
     setDeleting(true)
     try {
+      // DELETE_KEY를 환경변수에서 가져오거나 기본값 사용
+      const deleteKey = import.meta.env.VITE_DELETE_KEY || 'delete-secret-key'
+      
       const response = await fetch(`${apiBaseUrl}/image/${imageId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'X-Delete-Key': deleteKey
+        }
       })
       
       if (response.ok) {
