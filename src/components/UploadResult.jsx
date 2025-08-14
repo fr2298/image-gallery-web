@@ -5,8 +5,8 @@ function UploadResult({ imageData, apiBaseUrl, onClose }) {
   
   if (!imageData) return null
 
-  const imageUrl = `${window.location.origin}/api/image/${imageData.id}`
-  const directUrl = `http://localhost:5787/image/${imageData.id}`
+  const imageUrl = `${apiBaseUrl}/image/${imageData.id}`
+  const directUrl = imageUrl
   
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
