@@ -3,7 +3,10 @@ import ImageGallery from './components/ImageGallery'
 import ImageUploader from './components/ImageUploader'
 import SearchBar from './components/SearchBar'
 
-const API_BASE_URL = '/api'
+// 개발 환경에서는 프록시를 사용하고, 프로덕션에서는 직접 API URL 사용
+const API_BASE_URL = import.meta.env.PROD 
+  ? import.meta.env.VITE_API_URL || 'https://image-hosting-api.d7bac8971083ed89cb3387f9af9ac079.workers.dev'
+  : '/api'
 
 function App() {
   const [images, setImages] = useState([])
