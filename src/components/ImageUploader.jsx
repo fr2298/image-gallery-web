@@ -8,6 +8,7 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
   const [tags, setTags] = useState('')
   const [compressionQuality, setCompressionQuality] = useState(85)
   const [enableCompression, setEnableCompression] = useState(true)
+  const [keepOriginalName, setKeepOriginalName] = useState(false)
   const [uploadResult, setUploadResult] = useState(null)
   const fileInputRef = useRef(null)
 
@@ -21,6 +22,11 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
     // 태그 추가
     if (tags.trim()) {
       formData.append('tags', tags.trim())
+    }
+    
+    // 원본 파일명 유지 옵션 추가
+    if (keepOriginalName) {
+      formData.append('keepOriginalName', 'true')
     }
 
     try {
@@ -209,6 +215,44 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
             PNG, JPG, GIF up to 10MB
           </p>
+        </div>
+      </div>
+
+      {/* Tags Input */}
+      <div className="border-t pt-4">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          태그 (콤마로 구분)
+        </label>
+        <input
+          type="text"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="예: 풍경, 여행, 2024"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          disabled={uploading}
+        />
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          나중에 태그로 이미지를 검색할 수 있습니다
+        </p>
+      </div>
+
+      {/* File Name Option */}
+      <div className="border-t pt-4">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          파일명 설정
+        </label>
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="keep-original-name"
+            checked={keepOriginalName}
+            onChange={(e) => setKeepOriginalName(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            disabled={uploading}
+          />
+          <label htmlFor="keep-original-name" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+            원본 파일명 유지 (체크 해제 시 랜덤 ID 사용)
+          </label>
         </div>
       </div>
 
