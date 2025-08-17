@@ -9,6 +9,7 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
   const [compressionQuality, setCompressionQuality] = useState(85)
   const [enableCompression, setEnableCompression] = useState(true)
   const [keepOriginalName, setKeepOriginalName] = useState(false)
+  const [replaceExisting, setReplaceExisting] = useState(false)
   const [uploadResult, setUploadResult] = useState(null)
   const fileInputRef = useRef(null)
 
@@ -27,6 +28,11 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
     // 원본 파일명 유지 옵션 추가
     if (keepOriginalName) {
       formData.append('keepOriginalName', 'true')
+    }
+    
+    // 기존 이미지 교체 옵션 추가
+    if (replaceExisting) {
+      formData.append('replace', 'true')
     }
 
     try {
@@ -242,18 +248,33 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           파일명 설정
         </label>
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="keep-original-name"
-            checked={keepOriginalName}
-            onChange={(e) => setKeepOriginalName(e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            disabled={uploading}
-          />
-          <label htmlFor="keep-original-name" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-            원본 파일명 유지 (체크 해제 시 랜덤 ID 사용)
-          </label>
+        <div className="space-y-2">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="keep-original-name"
+              checked={keepOriginalName}
+              onChange={(e) => setKeepOriginalName(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              disabled={uploading}
+            />
+            <label htmlFor="keep-original-name" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              원본 파일명 유지 (체크 해제 시 랜덤 ID 사용)
+            </label>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="replace-existing"
+              checked={replaceExisting}
+              onChange={(e) => setReplaceExisting(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              disabled={uploading}
+            />
+            <label htmlFor="replace-existing" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              같은 파일명 자동 교체 (기존 이미지를 새 이미지로 덮어쓰기)
+            </label>
+          </div>
         </div>
       </div>
 
@@ -297,20 +318,6 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
         </div>
       </div>
 
-      {/* Tags Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          태그 (선택사항)
-        </label>
-        <input
-          type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder="태그를 쉼표로 구분하여 입력 (예: 풍경, 여행, 2024)"
-          className="w-full px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-          disabled={uploading}
-        />
-      </div>
 
       {/* URL Upload */}
       <div>

@@ -104,7 +104,7 @@ function ImageGallery({ images, apiBaseUrl, view, onImageDelete }) {
                 <tr key={image.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <img
-                      src={`${apiBaseUrl}/image/${image.id}`}
+                      src={`${apiBaseUrl}/image/${image.id}?t=${image.uploadedAt || Date.now()}`}
                       alt={image.filename || image.id}
                       className="h-12 w-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => setSelectedImage(image)}
@@ -162,7 +162,7 @@ function ImageGallery({ images, apiBaseUrl, view, onImageDelete }) {
             onClick={() => setSelectedImage(image)}
           >
             <img
-              src={`${apiBaseUrl}/image/${image.id}`}
+              src={`${apiBaseUrl}/image/${image.id}?t=${image.uploadedAt || Date.now()}`}
               alt={image.filename || image.id}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"

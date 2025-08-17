@@ -22,13 +22,24 @@ function App() {
       // 또는 localStorage에서 이전에 업로드한 이미지 ID들을 가져올 수 있습니다
       
       const savedImageIds = localStorage.getItem('uploadedImages')
-      if (savedImageIds) {
+      const savedImageData = localStorage.getItem('uploadedImageData')
+      
+      if (savedImageData) {
+        // 상세 정보가 있으면 사용
+        const imageData = JSON.parse(savedImageData)
+        setImages(imageData)
+      } else if (savedImageIds) {
+        // 구버전 호환성 - ID만 있는 경우
         const imageIds = JSON.parse(savedImageIds)
         const loadedImages = []
         
         // 저장된 이미지 ID들로 이미지 정보를 재구성
         for (const id of imageIds) {
-          loadedImages.push({ id, filename: `image-${id}` })
+          loadedImages.push({ 
+            id, 
+            filename: `image-${id}`,
+            uploadedAt: new Date().toISOString() // 기본 타임스탬프 추가
+          })
         }
         
         setImages(loadedImages)
@@ -49,13 +60,24 @@ function App() {
 
   const handleUploadSuccess = (newImage) => {
     if (newImage && newImage.id) {
-      // 새로 업로드된 이미지를 목록에 즉시 추가
+      // 새로 업로드된 이미지를 목록에 즉시 추가 (현재 타임스탬프 포함)
+      const imageWithTimestamp = {
+        ...newImage,
+        uploadedAt: new Date().toISOString()
+      }
+      
       setImages(prevImages => {
-        const updatedImages = [newImage, ...prevImages]
+        // 같은 파일명의 기존 이미지가 있으면 제거
+        const filteredImages = prevImages.filter(img => 
+          !(img.filename && img.filename === newImage.filename)
+        )
         
-        // localStorage에 이미지 ID 저장
+        const updatedImages = [imageWithTimestamp, ...filteredImages]
+        
+        // localStorage에 이미지 전체 데이터 저장
         const imageIds = updatedImages.map(img => img.id)
         localStorage.setItem('uploadedImages', JSON.stringify(imageIds))
+        localStorage.setItem('uploadedImageData', JSON.stringify(updatedImages))
         
         return updatedImages
       })
@@ -73,6 +95,7 @@ function App() {
       // localStorage 업데이트
       const imageIds = updatedImages.map(img => img.id)
       localStorage.setItem('uploadedImages', JSON.stringify(imageIds))
+      localStorage.setItem('uploadedImageData', JSON.stringify(updatedImages))
       
       return updatedImages
     })

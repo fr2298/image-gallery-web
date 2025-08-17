@@ -74,7 +74,7 @@ function ImageModal({ image, apiBaseUrl, onClose }) {
           {/* Image Section */}
           <div className="lg:w-2/3 bg-black flex items-center justify-center p-8">
             <img
-              src={`${apiBaseUrl}/image/${image.id}`}
+              src={`${apiBaseUrl}/image/${image.id}?t=${image.uploadedAt || Date.now()}`}
               alt={image.filename || image.id}
               className="max-w-full max-h-[70vh] object-contain"
             />
@@ -197,7 +197,7 @@ function ImageModal({ image, apiBaseUrl, onClose }) {
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex gap-2">
                     <a
-                      href={`${apiBaseUrl}/image/${image.id}`}
+                      href={`${apiBaseUrl}/image/${image.id}?t=${image.uploadedAt || Date.now()}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
@@ -206,7 +206,7 @@ function ImageModal({ image, apiBaseUrl, onClose }) {
                     </a>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(`${apiBaseUrl}/image/${image.id}`)
+                        navigator.clipboard.writeText(`${apiBaseUrl}/image/${image.id}?t=${image.uploadedAt || Date.now()}`)
                         // You could add a toast notification here
                       }}
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
