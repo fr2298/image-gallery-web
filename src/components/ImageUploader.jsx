@@ -17,8 +17,7 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
 
   // 파일명 중복 체크 함수
   const checkDuplicateFilename = async (filename) => {
-    if (!keepOriginalName) return false
-    
+    // keepOriginalName과 무관하게 항상 중복 체크
     try {
       const response = await fetch(`${apiBaseUrl}/check-duplicate?filename=${encodeURIComponent(filename)}`)
       if (response.ok) {
@@ -48,8 +47,10 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
     }
     
     // 덮어쓰기 옵션 (중복 확인 후 강제 덮어쓰기)
-    if (forceReplace) {
+    // keepOriginalName이 true일 때만 덮어쓰기 의미가 있음
+    if (forceReplace && keepOriginalName) {
       formData.append('replace', 'true')
+      formData.append('keepOriginalName', 'true') // 덮어쓰기 시 원본 파일명 유지 필수
     }
 
     try {
@@ -118,20 +119,18 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
   const handleFileUpload = async (file) => {
     if (!file) return
 
-    // 원본 파일명 유지 옵션이 켜져 있을 때만 중복 체크
-    if (keepOriginalName) {
-      const isDuplicate = await checkDuplicateFilename(file.name)
-      
-      if (isDuplicate) {
-        // 중복된 파일명이 있으면 확인 팝업 표시
-        setPendingFile(file)
-        setDuplicateFilename(file.name)
-        setShowDuplicateConfirm(true)
-        return
-      }
+    // 항상 파일명 중복 체크 수행
+    const isDuplicate = await checkDuplicateFilename(file.name)
+    
+    if (isDuplicate) {
+      // 중복된 파일명이 있으면 확인 팝업 표시
+      setPendingFile(file)
+      setDuplicateFilename(file.name)
+      setShowDuplicateConfirm(true)
+      return
     }
 
-    // 중복이 없거나 원본 파일명 유지 옵션이 꺼져 있으면 바로 업로드
+    // 중복이 없으면 바로 업로드
     await proceedWithUpload(file)
   }
 
@@ -400,11 +399,22 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
             파일명 중복 확인
           </h2>
-          <p className="text-gray-700 dark:text-gray-300 mb-6">
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
             "<span className="font-semibold">{duplicateFilename}</span>" 파일이 이미 존재합니다.
-            <br />
-            기존 파일을 덮어쓰시겠습니까?
           </p>
+          {keepOriginalName ? (
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              원본 파일명을 유지하도록 설정되어 있습니다.
+              <br />
+              기존 파일을 덮어쓰시겠습니까?
+            </p>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              동일한 이름의 파일이 있지만 랜덤 ID로 저장됩니다.
+              <br />
+              원본 파일명을 유지하고 덮어쓰시려면 "원본 파일명 유지" 옵션을 활성화하세요.
+            </p>
+          )}
           <div className="flex gap-3 justify-end">
             <button
               onClick={handleCancelUpload}
@@ -412,12 +422,24 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
             >
               취소
             </button>
-            <button
-              onClick={handleConfirmReplace}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              덮어쓰기
-            </button>
+            {keepOriginalName ? (
+              <button
+                onClick={handleConfirmReplace}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                덮어쓰기
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setShowDuplicateConfirm(false)
+                  proceedWithUpload(pendingFile)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                계속 (랜덤 ID로 저장)
+              </button>
+            )}
           </div>
         </div>
       </div>
