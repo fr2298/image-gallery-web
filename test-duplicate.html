@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파일명 중복 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <h1>파일명 중복 처리 테스트</h1>
+    
+    <div class="test-section">
+        <h2>1. 중복 체크 API 테스트</h2>
+        <input type="text" id="checkFilename" placeholder="파일명 입력 (예: test.jpg)" value="test.jpg">
+        <button onclick="checkDuplicate()">중복 체크</button>
+        <div id="checkResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 파일 업로드 테스트</h2>
+        <input type="file" id="fileInput" accept="image/*">
+        <br><br>
+        <label>
+            <input type="checkbox" id="keepOriginal" checked> 원본 파일명 유지
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" id="forceReplace"> 강제 덮어쓰기 (팝업 없이)
+        </label>
+        <br><br>
+        <button onclick="uploadFile()">업로드</button>
+        <div id="uploadResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 시나리오 테스트</h2>
+        <button onclick="testScenario1()">시나리오 1: 새 파일 업로드</button>
+        <button onclick="testScenario2()">시나리오 2: 중복 파일 업로드 (팝업 표시)</button>
+        <button onclick="testScenario3()">시나리오 3: 랜덤 ID로 업로드</button>
+        <div id="scenarioResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5787';
+
+        async function checkDuplicate() {
+            const filename = document.getElementById('checkFilename').value;
+            const resultDiv = document.getElementById('checkResult');
+            
+            try {
+                const response = await fetch(`${API_URL}/check-duplicate?filename=${encodeURIComponent(filename)}`);
+                const data = await response.json();
+                
+                if (data.exists) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `✗ 파일 중복: "${filename}"이(가) 이미 존재합니다.\n정제된 이름: ${data.cleanName}`;
+                } else {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✓ 사용 가능: "${filename}"을(를) 사용할 수 있습니다.`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `오류: ${error.message}`;
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const keepOriginal = document.getElementById('keepOriginal').checked;
+            const forceReplace = document.getElementById('forceReplace').checked;
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '파일을 선택해주세요.';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            
+            // 원본 파일명 유지 시 중복 체크
+            if (keepOriginal && !forceReplace) {
+                const checkResponse = await fetch(`${API_URL}/check-duplicate?filename=${encodeURIComponent(file.name)}`);
+                const checkData = await checkResponse.json();
+                
+                if (checkData.exists) {
+                    if (!confirm(`"${file.name}" 파일이 이미 존재합니다.\n기존 파일을 덮어쓰시겠습니까?`)) {
+                        resultDiv.className = 'result';
+                        resultDiv.textContent = '업로드 취소됨';
+                        return;
+                    }
+                    // 사용자가 확인한 경우 forceReplace를 true로 설정
+                    forceReplace = true;
+                }
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            if (keepOriginal) {
+                formData.append('keepOriginalName', 'true');
+            }
+            
+            if (forceReplace) {
+                formData.append('replace', 'true');
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✓ 업로드 성공!\nID: ${data.data?.id || data.id}\n파일명: ${data.data?.originalName || data.originalName}`;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `✗ 업로드 실패: ${errorText}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `오류: ${error.message}`;
+            }
+        }
+
+        async function testScenario1() {
+            const resultDiv = document.getElementById('scenarioResult');
+            resultDiv.textContent = '시나리오 1 실행 중...\n';
+            
+            // 테스트용 이미지 생성
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = `rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`;
+            ctx.fillRect(0, 0, 100, 100);
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `test-${Date.now()}.png`, { type: 'image/png' });
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('keepOriginalName', 'true');
+                
+                try {
+                    const response = await fetch(`${API_URL}/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        resultDiv.className = 'result success';
+                        resultDiv.textContent += `✓ 새 파일 업로드 성공!\nID: ${data.data?.id || data.id}`;
+                    } else {
+                        resultDiv.className = 'result error';
+                        resultDiv.textContent += `✗ 실패: ${await response.text()}`;
+                    }
+                } catch (error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent += `오류: ${error.message}`;
+                }
+            });
+        }
+
+        async function testScenario2() {
+            const resultDiv = document.getElementById('scenarioResult');
+            resultDiv.textContent = '시나리오 2: 동일한 파일명으로 두 번 업로드\n';
+            
+            // 고정된 파일명 사용
+            const filename = 'duplicate-test.png';
+            
+            // 첫 번째 업로드
+            const canvas1 = document.createElement('canvas');
+            canvas1.width = 100;
+            canvas1.height = 100;
+            const ctx1 = canvas1.getContext('2d');
+            ctx1.fillStyle = 'red';
+            ctx1.fillRect(0, 0, 100, 100);
+            
+            canvas1.toBlob(async (blob1) => {
+                const file1 = new File([blob1], filename, { type: 'image/png' });
+                const formData1 = new FormData();
+                formData1.append('image', file1);
+                formData1.append('keepOriginalName', 'true');
+                
+                const response1 = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    body: formData1
+                });
+                
+                if (response1.ok) {
+                    resultDiv.textContent += '1. 첫 번째 업로드 성공\n';
+                    
+                    // 두 번째 업로드 (중복)
+                    const canvas2 = document.createElement('canvas');
+                    canvas2.width = 100;
+                    canvas2.height = 100;
+                    const ctx2 = canvas2.getContext('2d');
+                    ctx2.fillStyle = 'blue';
+                    ctx2.fillRect(0, 0, 100, 100);
+                    
+                    canvas2.toBlob(async (blob2) => {
+                        const file2 = new File([blob2], filename, { type: 'image/png' });
+                        
+                        // 중복 체크
+                        const checkResponse = await fetch(`${API_URL}/check-duplicate?filename=${encodeURIComponent(filename)}`);
+                        const checkData = await checkResponse.json();
+                        
+                        if (checkData.exists) {
+                            resultDiv.textContent += '2. 중복 감지됨! 팝업이 표시되어야 합니다.\n';
+                            
+                            // 덮어쓰기 시뮬레이션
+                            const formData2 = new FormData();
+                            formData2.append('image', file2);
+                            formData2.append('keepOriginalName', 'true');
+                            formData2.append('replace', 'true');
+                            
+                            const response2 = await fetch(`${API_URL}/upload`, {
+                                method: 'POST',
+                                body: formData2
+                            });
+                            
+                            if (response2.ok) {
+                                resultDiv.className = 'result success';
+                                resultDiv.textContent += '3. 덮어쓰기 성공!';
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        async function testScenario3() {
+            const resultDiv = document.getElementById('scenarioResult');
+            resultDiv.textContent = '시나리오 3: 랜덤 ID로 업로드\n';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'green';
+            ctx.fillRect(0, 0, 100, 100);
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], 'random-id-test.png', { type: 'image/png' });
+                const formData = new FormData();
+                formData.append('image', file);
+                // keepOriginalName을 false로 설정 (또는 설정하지 않음)
+                
+                try {
+                    const response = await fetch(`${API_URL}/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        resultDiv.className = 'result success';
+                        resultDiv.textContent += `✓ 랜덤 ID로 업로드 성공!\nID: ${data.data?.id || data.id}\n(원본 파일명: ${file.name})`;
+                    }
+                } catch (error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent += `오류: ${error.message}`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

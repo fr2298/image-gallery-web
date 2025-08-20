@@ -9,13 +9,30 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
   const [compressionQuality, setCompressionQuality] = useState(85)
   const [enableCompression, setEnableCompression] = useState(true)
   const [keepOriginalName, setKeepOriginalName] = useState(false)
-  const [replaceExisting, setReplaceExisting] = useState(false)
   const [uploadResult, setUploadResult] = useState(null)
+  const [pendingFile, setPendingFile] = useState(null)
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
+  const [duplicateFilename, setDuplicateFilename] = useState('')
   const fileInputRef = useRef(null)
 
-  const handleFileUpload = async (file) => {
-    if (!file) return
+  // 파일명 중복 체크 함수
+  const checkDuplicateFilename = async (filename) => {
+    if (!keepOriginalName) return false
+    
+    try {
+      const response = await fetch(`${apiBaseUrl}/check-duplicate?filename=${encodeURIComponent(filename)}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.exists || false
+      }
+    } catch (error) {
+      console.error('Duplicate check error:', error)
+    }
+    return false
+  }
 
+  // 실제 업로드 처리 함수
+  const proceedWithUpload = async (file, forceReplace = false) => {
     setUploading(true)
     const formData = new FormData()
     formData.append('image', file)
@@ -30,8 +47,8 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
       formData.append('keepOriginalName', 'true')
     }
     
-    // 기존 이미지 교체 옵션 추가
-    if (replaceExisting) {
+    // 덮어쓰기 옵션 (중복 확인 후 강제 덮어쓰기)
+    if (forceReplace) {
       formData.append('replace', 'true')
     }
 
@@ -81,6 +98,9 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
           fileInputRef.current.value = ''
         }
         setTags('')
+        setPendingFile(null)
+        setShowDuplicateConfirm(false)
+        setDuplicateFilename('')
       } else {
         const errorText = await response.text()
         console.error('Upload failed:', errorText)
@@ -88,8 +108,47 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
       }
     } catch (error) {
       console.error('Upload error:', error)
+      alert('업로드 중 오류가 발생했습니다.')
     } finally {
       setUploading(false)
+    }
+  }
+
+  // 파일 업로드 핸들러 (중복 체크 포함)
+  const handleFileUpload = async (file) => {
+    if (!file) return
+
+    // 원본 파일명 유지 옵션이 켜져 있을 때만 중복 체크
+    if (keepOriginalName) {
+      const isDuplicate = await checkDuplicateFilename(file.name)
+      
+      if (isDuplicate) {
+        // 중복된 파일명이 있으면 확인 팝업 표시
+        setPendingFile(file)
+        setDuplicateFilename(file.name)
+        setShowDuplicateConfirm(true)
+        return
+      }
+    }
+
+    // 중복이 없거나 원본 파일명 유지 옵션이 꺼져 있으면 바로 업로드
+    await proceedWithUpload(file)
+  }
+
+  // 중복 확인 팝업에서 덮어쓰기 선택
+  const handleConfirmReplace = async () => {
+    if (pendingFile) {
+      await proceedWithUpload(pendingFile, true)
+    }
+  }
+
+  // 중복 확인 팝업에서 취소 선택
+  const handleCancelUpload = () => {
+    setPendingFile(null)
+    setShowDuplicateConfirm(false)
+    setDuplicateFilename('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -262,19 +321,9 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
               원본 파일명 유지 (체크 해제 시 랜덤 ID 사용)
             </label>
           </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="replace-existing"
-              checked={replaceExisting}
-              onChange={(e) => setReplaceExisting(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              disabled={uploading}
-            />
-            <label htmlFor="replace-existing" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-              같은 파일명 자동 교체 (기존 이미지를 새 이미지로 덮어쓰기)
-            </label>
-          </div>
+          <p className="ml-6 text-xs text-gray-500 dark:text-gray-400">
+            원본 파일명 유지 시 중복 파일이 있으면 확인 후 덮어쓰기 가능합니다
+          </p>
         </div>
       </div>
 
@@ -343,6 +392,36 @@ function ImageUploader({ apiBaseUrl, onUploadSuccess }) {
         </div>
       </div>
     </div>
+
+    {/* Duplicate Confirmation Modal */}
+    {showDuplicateConfirm && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            파일명 중복 확인
+          </h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-6">
+            "<span className="font-semibold">{duplicateFilename}</span>" 파일이 이미 존재합니다.
+            <br />
+            기존 파일을 덮어쓰시겠습니까?
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={handleCancelUpload}
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleConfirmReplace}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              덮어쓰기
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Upload Result Modal */}
     {uploadResult && (
